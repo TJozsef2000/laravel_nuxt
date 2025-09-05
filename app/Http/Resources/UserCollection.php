@@ -1,0 +1,10 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Resources;
+
+class UserCollection extends BaseCollection
+{
+    // Inherit all functionality from BaseCollection
+}

@@ -1,0 +1,153 @@
+// Base API service with useSanctumClient integration
+import type { 
+  ApiRequestConfig, 
+  BaseApiResponse, 
+  ApiSuccessResponse, 
+  ApiErrorResponse,
+  HttpMethod
+} from '~/types/api/base'
+
+export class BaseApiService {
+  protected client: ReturnType<typeof useSanctumClient>
+
+  constructor() {
+    // Use the existing useSanctumClient for consistency with current setup
+    this.client = useSanctumClient()
+  }
+
+  /**
+   * Make a generic API request
+   */
+  protected async request<T = unknown>(
+    endpoint: string, 
+    config: ApiRequestConfig = {}
+  ): Promise<T> {
+    const { method = 'GET', body, params, headers = {} } = config
+
+    try {
+      const options: any = {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          ...headers,
+        },
+      }
+
+      // Add query parameters for GET requests
+      if (params && Object.keys(params).length > 0) {
+        const searchParams = new URLSearchParams()
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== null && value !== undefined) {
+            searchParams.append(key, String(value))
+          }
+        })
+        endpoint = `${endpoint}?${searchParams.toString()}`
+      }
+
+      // Add body for non-GET requests
+      if (body && method !== 'GET') {
+        options.body = JSON.stringify(body)
+      }
+
+      const response = await this.client(endpoint, options)
+      return response as T
+    } catch (error) {
+      console.error(`API request failed: ${method} ${endpoint}`, error)
+      throw this.handleError(error)
+    }
+  }
+
+  /**
+   * GET request
+   */
+  protected async get<T = unknown>(
+    endpoint: string, 
+    params?: Record<string, unknown>
+  ): Promise<T> {
+    return this.request<T>(endpoint, { method: 'GET', params })
+  }
+
+  /**
+   * POST request
+   */
+  protected async post<T = unknown>(
+    endpoint: string, 
+    body?: unknown,
+    config?: Omit<ApiRequestConfig, 'method' | 'body'>
+  ): Promise<T> {
+    return this.request<T>(endpoint, { method: 'POST', body, ...config })
+  }
+
+  /**
+   * PUT request
+   */
+  protected async put<T = unknown>(
+    endpoint: string, 
+    body?: unknown,
+    config?: Omit<ApiRequestConfig, 'method' | 'body'>
+  ): Promise<T> {
+    return this.request<T>(endpoint, { method: 'PUT', body, ...config })
+  }
+
+  /**
+   * PATCH request
+   */
+  protected async patch<T = unknown>(
+    endpoint: string, 
+    body?: unknown,
+    config?: Omit<ApiRequestConfig, 'method' | 'body'>
+  ): Promise<T> {
+    return this.request<T>(endpoint, { method: 'PATCH', body, ...config })
+  }
+
+  /**
+   * DELETE request
+   */
+  protected async delete<T = unknown>(
+    endpoint: string,
+    config?: Omit<ApiRequestConfig, 'method'>
+  ): Promise<T> {
+    return this.request<T>(endpoint, { method: 'DELETE', ...config })
+  }
+
+  /**
+   * Handle API errors consistently
+   */
+  protected handleError(error: unknown): Error {
+    if (error && typeof error === 'object' && 'data' in error) {
+      const apiError = error.data as ApiErrorResponse
+      if (apiError?.message) {
+        return new Error(apiError.message)
+      }
+      
+      // Handle validation errors
+      if (apiError?.errors) {
+        const firstError = Object.values(apiError.errors)[0]?.[0]
+        if (firstError) {
+          return new Error(firstError)
+        }
+      }
+    }
+
+    if (error instanceof Error) {
+      return error
+    }
+
+    return new Error('An unexpected error occurred')
+  }
+
+  /**
+   * Check if response is successful
+   */
+  protected isSuccessResponse(response: BaseApiResponse): response is ApiSuccessResponse {
+    return response.success === true
+  }
+
+  /**
+   * Extract data from API response
+   */
+  protected extractData<T>(response: ApiSuccessResponse<T>): T {
+    return response.data
+  }
+}

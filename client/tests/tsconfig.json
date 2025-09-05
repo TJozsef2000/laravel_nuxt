@@ -1,0 +1,12 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "types": ["vitest/globals", "@vue/test-utils", "@nuxt/test-utils"],
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "moduleResolution": "node"
+  },
+  "include": [
+    "./**/*",
+    "./types.d.ts"
+  ]
+}
