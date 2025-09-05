@@ -8,11 +8,8 @@ import type {
 } from '~/types/api/base'
 
 export class BaseApiService {
-  protected client: ReturnType<typeof useSanctumClient>
-
-  constructor() {
-    // Use the existing useSanctumClient for consistency with current setup
-    this.client = useSanctumClient()
+  protected get client() {
+    return useSanctumClient()
   }
 
   /**
