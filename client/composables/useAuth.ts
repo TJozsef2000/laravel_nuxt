@@ -9,24 +9,58 @@ import type {
 import { authService } from '~/services'
 
 const getErrorMessage = (error: unknown, fallback: string): string => {
-  if (error instanceof Error) {
-    return error.message
-  }
-  if (error && typeof error === 'object' && 'data' in error) {
-    const errorData = error.data as Record<string, unknown>
-    // Check for new consistent API response structure
-    if (errorData && typeof errorData.message === 'string') {
-      return errorData.message
-    }
-    // Check for validation errors structure
-    if (errorData && 'errors' in errorData && typeof errorData.errors === 'object') {
-      const errors = errorData.errors as Record<string, string[]>
-      const firstErrorKey = Object.keys(errors)[0]
-      if (firstErrorKey && errors[firstErrorKey]?.[0]) {
-        return errors[firstErrorKey][0]
+  // Handle FetchError from ofetch/nuxt (which has a specific structure)
+  if (error && typeof error === 'object') {
+    const errorObj = error as Record<string, any>
+    
+    // FetchError has the response data directly in the `data` property
+    if (errorObj.data) {
+      // Check for Laravel validation response structure
+      if (typeof errorObj.data.message === 'string') {
+        return errorObj.data.message
+      }
+      
+      // Check for validation errors in data.errors
+      if (errorObj.data.errors && typeof errorObj.data.errors === 'object') {
+        const errors = errorObj.data.errors as Record<string, string[]>
+        const firstErrorKey = Object.keys(errors)[0]
+        if (firstErrorKey && errors[firstErrorKey]?.[0]) {
+          return errors[firstErrorKey][0]
+        }
       }
     }
+    
+    // Check for response data (alternative structure)
+    if (errorObj.response?.data) {
+      const responseData = errorObj.response.data
+      if (typeof responseData.message === 'string') {
+        return responseData.message
+      }
+      if (responseData.errors && typeof responseData.errors === 'object') {
+        const errors = responseData.errors as Record<string, string[]>
+        const firstErrorKey = Object.keys(errors)[0]
+        if (firstErrorKey && errors[firstErrorKey]?.[0]) {
+          return errors[firstErrorKey][0]
+        }
+      }
+    }
+    
+    // Check for statusMessage (HTTP error) - but avoid the generic message format
+    if (typeof errorObj.statusMessage === 'string' && !errorObj.statusMessage.includes('[POST]')) {
+      return errorObj.statusMessage
+    }
+    
+    // Only use the generic error message as last resort (not for FetchError)
+    if (typeof errorObj.message === 'string' && errorObj.constructor?.name !== 'FetchError') {
+      return errorObj.message
+    }
   }
+  
+  // Handle native Error instances
+  if (error instanceof Error && error.constructor.name !== 'FetchError') {
+    return error.message
+  }
+  
   return fallback
 }
 
