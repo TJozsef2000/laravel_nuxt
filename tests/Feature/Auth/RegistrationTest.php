@@ -19,8 +19,11 @@ test('new users can register with valid data', function () {
 
     $response->assertStatus(201)
         ->assertJsonStructure([
+            'success',
             'message',
-            'user' => ['id', 'name', 'email', 'email_verified_at', 'created_at'],
+            'data' => [
+                'user' => ['id', 'name', 'email', 'email_verified_at', 'created_at'],
+            ],
         ]);
 
     $this->assertAuthenticated();

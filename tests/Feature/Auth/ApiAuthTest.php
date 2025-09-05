@@ -22,7 +22,9 @@ test('user can register via API endpoint', function () {
         ->assertJsonStructure([
             'success',
             'message',
-            'user' => ['id', 'name', 'email', 'email_verified_at', 'created_at'],
+            'data' => [
+                'user' => ['id', 'name', 'email', 'email_verified_at', 'created_at'],
+            ],
         ])
         ->assertJson([
             'success' => true,
@@ -47,7 +49,9 @@ test('user can login via API endpoint', function () {
         ->assertJsonStructure([
             'success',
             'message',
-            'user' => ['id', 'name', 'email', 'email_verified_at', 'created_at'],
+            'data' => [
+                'user' => ['id', 'name', 'email', 'email_verified_at', 'created_at'],
+            ],
         ])
         ->assertJson([
             'success' => true,

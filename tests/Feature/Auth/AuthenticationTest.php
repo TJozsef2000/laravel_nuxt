@@ -17,8 +17,11 @@ test('users can authenticate with valid credentials', function () {
 
     $response->assertStatus(200)
         ->assertJsonStructure([
+            'success',
             'message',
-            'user' => ['id', 'name', 'email', 'email_verified_at', 'created_at'],
+            'data' => [
+                'user' => ['id', 'name', 'email', 'email_verified_at', 'created_at'],
+            ],
         ]);
 
     $this->assertAuthenticated();
