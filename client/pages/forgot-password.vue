@@ -26,13 +26,13 @@
             v-model="form.email"
             :required="true"
             :disabled="isLoading"
+            :error="getFieldError('email')"
           />
 
           <ErrorAlert
-            v-if="error"
-            :error="error"
+            :error="generalError"
             :dismissible="true"
-            @dismiss="error = ''"
+            @dismiss="generalError = ''"
           />
 
           <div
@@ -91,6 +91,7 @@
   import type { ForgotPasswordData } from '~/types/auth'
   import MaterialInput from '~/components/ui/MaterialInput.vue'
   import ErrorAlert from '~/components/ui/ErrorAlert.vue'
+  import { useFormErrors } from '~/composables/useFormErrors'
 
   definePageMeta({
     layout: 'default',
@@ -106,12 +107,25 @@
     email: '',
   })
 
-  const error = ref<string>('')
+  // Use the form errors composable for backend validation
+  const {
+    fieldErrors,
+    generalError,
+    hasErrors,
+    getFieldError,
+    handleValidationErrors,
+    clearAllErrors,
+    setupFieldWatchers
+  } = useFormErrors(toRef(() => form))
+
+  // Setup watchers to clear errors when user types
+  setupFieldWatchers()
+
   const success = ref<string>('')
 
   const handleSubmit = async () => {
     isLoading.value = true
-    error.value = ''
+    clearAllErrors() // Clear previous errors
     success.value = ''
 
     try {
@@ -123,10 +137,16 @@
         showSuccess('Password reset link sent to your email!')
         form.email = '' // Clear the form
       } else {
-        error.value = result.error || 'Failed to send reset link. Please try again.'
+        // Handle validation errors from backend
+        if (result.validationErrors) {
+          handleValidationErrors(result.validationErrors)
+        }
+        // Always show general error when request fails
+        generalError.value = result.error || 'Failed to send reset link. Please try again.'
       }
-    } catch {
-      error.value = 'An unexpected error occurred. Please try again.'
+    } catch (err: unknown) {
+      // Handle unexpected errors
+      handleValidationErrors(err)
       showError('Failed to send password reset link.')
     } finally {
       isLoading.value = false

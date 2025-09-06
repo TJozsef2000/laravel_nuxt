@@ -24,6 +24,7 @@
             v-model="form.email"
             :required="true"
             :disabled="isLoading"
+            :error="getFieldError('email')"
           />
 
           <MaterialInput
@@ -33,6 +34,7 @@
             v-model="form.password"
             :required="true"
             :disabled="isLoading"
+            :error="getFieldError('password')"
           />
 
           <MaterialInput
@@ -42,12 +44,13 @@
             v-model="form.password_confirmation"
             :required="true"
             :disabled="isLoading"
+            :error="getFieldError('password_confirmation')"
           />
 
           <ErrorAlert
-            :error="error"
+            :error="generalError"
             :dismissible="true"
-            @dismiss="error = ''"
+            @dismiss="generalError = ''"
           />
 
           <button
@@ -80,6 +83,7 @@
   import type { ResetPasswordData } from '~/types/auth'
   import MaterialInput from '~/components/ui/MaterialInput.vue'
   import ErrorAlert from '~/components/ui/ErrorAlert.vue'
+  import { useFormErrors } from '~/composables/useFormErrors'
 
   definePageMeta({
     layout: 'default',
@@ -104,7 +108,19 @@
     password_confirmation: '',
   })
 
-  const error = ref<string>('')
+  // Use the form errors composable for backend validation
+  const {
+    fieldErrors,
+    generalError,
+    hasErrors,
+    getFieldError,
+    handleValidationErrors,
+    clearAllErrors,
+    setupFieldWatchers
+  } = useFormErrors(toRef(() => form))
+
+  // Setup watchers to clear errors when user types
+  setupFieldWatchers()
 
   // Initialize form with URL parameters
   watchEffect(() => {
@@ -122,7 +138,7 @@
 
   const handleSubmit = async () => {
     isLoading.value = true
-    error.value = ''
+    clearAllErrors() // Clear previous errors
 
     try {
       const result = await resetPassword(form)
@@ -131,10 +147,16 @@
         showSuccess('Password reset successfully! You can now sign in with your new password.')
         await navigateTo('/login')
       } else {
-        error.value = result.error || 'Password reset failed. Please try again.'
+        // Handle validation errors from backend
+        if (result.validationErrors) {
+          handleValidationErrors(result.validationErrors)
+        }
+        // Always show general error when reset fails
+        generalError.value = result.error || 'Password reset failed. Please try again.'
       }
-    } catch {
-      error.value = 'An unexpected error occurred. Please try again.'
+    } catch (err: unknown) {
+      // Handle unexpected errors
+      handleValidationErrors(err)
       showError('Password reset failed. Please try again.')
     } finally {
       isLoading.value = false

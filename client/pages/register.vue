@@ -32,6 +32,7 @@
                         v-model="form.name"
                         :required="true"
                         :disabled="isLoading"
+                        :error="getFieldError('name')"
                     />
 
                     <MaterialInput
@@ -41,6 +42,7 @@
                         v-model="form.email"
                         :required="true"
                         :disabled="isLoading"
+                        :error="getFieldError('email')"
                     />
 
                     <MaterialInput
@@ -50,6 +52,7 @@
                         v-model="form.password"
                         :required="true"
                         :disabled="isLoading"
+                        :error="getFieldError('password')"
                     />
 
                     <MaterialInput
@@ -59,6 +62,7 @@
                         v-model="form.password_confirmation"
                         :required="true"
                         :disabled="isLoading"
+                        :error="getFieldError('password_confirmation')"
                     />
 
                     <div class="flex items-start">
@@ -68,12 +72,16 @@
                             label="I agree to the terms and conditions"
                             :disabled="isLoading"
                         />
+                        <!-- Show terms error separately if needed -->
+                        <p v-if="getFieldError('terms')" class="mt-1 text-sm text-red-600 dark:text-red-400">
+                            {{ getFieldError('terms') }}
+                        </p>
                     </div>
 
                     <ErrorAlert
-                        :error="error"
+                        :error="generalError"
                         :dismissible="true"
-                        @dismiss="error = ''"
+                        @dismiss="generalError = ''"
                     />
 
                     <button
@@ -114,6 +122,7 @@ import type {RegisterData} from '~/types/auth'
 import MaterialInput from '~/components/ui/MaterialInput.vue'
 import Checkbox from '~/components/ui/Checkbox.vue'
 import ErrorAlert from '~/components/ui/ErrorAlert.vue'
+import { useFormErrors } from '~/composables/useFormErrors'
 
 definePageMeta({
     layout: 'default',
@@ -134,11 +143,23 @@ const form = reactive<RegisterData>({
     terms: false,
 })
 
-const error = ref<string>('')
+// Use the form errors composable for backend validation
+const {
+    fieldErrors,
+    generalError,
+    hasErrors,
+    getFieldError,
+    handleValidationErrors,
+    clearAllErrors,
+    setupFieldWatchers
+} = useFormErrors(toRef(() => form))
+
+// Setup watchers to clear errors when user types
+setupFieldWatchers()
 
 const handleSubmit = async () => {
     isLoading.value = true
-    error.value = ''
+    clearAllErrors() // Clear previous errors
 
     try {
         const result = await signUp(form)
@@ -148,10 +169,16 @@ const handleSubmit = async () => {
             // User is now automatically logged in, redirect to dashboard
             navigateTo(sanctumConfig.redirect.onLogin || '/dashboard')
         } else {
-            error.value = result.error || 'Registration failed. Please try again.'
+            // Handle validation errors from backend
+            if (result.validationErrors) {
+                handleValidationErrors(result.validationErrors)
+            }
+            // Always show general error when registration fails
+            generalError.value = result.error || 'Registration failed. Please try again.'
         }
-    } catch {
-        error.value = 'An unexpected error occurred. Please try again.'
+    } catch (err: unknown) {
+        // Handle unexpected errors
+        handleValidationErrors(err)
         showError('Registration failed. Please try again.')
     } finally {
         isLoading.value = false

@@ -12,14 +12,14 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
   // Handle FetchError from ofetch/nuxt (which has a specific structure)
   if (error && typeof error === 'object') {
     const errorObj = error as Record<string, any>
-    
+
     // FetchError has the response data directly in the `data` property
     if (errorObj.data) {
       // Check for Laravel validation response structure
       if (typeof errorObj.data.message === 'string') {
         return errorObj.data.message
       }
-      
+
       // Check for validation errors in data.errors
       if (errorObj.data.errors && typeof errorObj.data.errors === 'object') {
         const errors = errorObj.data.errors as Record<string, string[]>
@@ -29,7 +29,7 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
         }
       }
     }
-    
+
     // Check for response data (alternative structure)
     if (errorObj.response?.data) {
       const responseData = errorObj.response.data
@@ -44,23 +44,23 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
         }
       }
     }
-    
+
     // Check for statusMessage (HTTP error) - but avoid the generic message format
     if (typeof errorObj.statusMessage === 'string' && !errorObj.statusMessage.includes('[POST]')) {
       return errorObj.statusMessage
     }
-    
+
     // Only use the generic error message as last resort (not for FetchError)
     if (typeof errorObj.message === 'string' && errorObj.constructor?.name !== 'FetchError') {
       return errorObj.message
     }
   }
-  
+
   // Handle native Error instances
   if (error instanceof Error && error.constructor.name !== 'FetchError') {
     return error.message
   }
-  
+
   return fallback
 }
 
@@ -74,8 +74,8 @@ export const useAuth = () => {
   const signIn = async (credentials: LoginCredentials) => {
     try {
       await login(credentials)
-      return { 
-        success: true, 
+      return {
+        success: true,
         error: null,
         validationErrors: null
       }
@@ -96,11 +96,17 @@ export const useAuth = () => {
       // We need to refresh the identity to sync the frontend state
       await refreshIdentity()
 
-      return { success: true, error: null, user: response.data?.user }
+      return {
+        success: true,
+        error: null,
+        validationErrors: null,
+        user: response.data?.user
+      }
     } catch (error: unknown) {
       return {
         success: false,
         error: getErrorMessage(error, 'Registration failed. Please try again.'),
+        validationErrors: error // Pass the full error object for field extraction
       }
     }
   }
@@ -146,11 +152,16 @@ export const useAuth = () => {
   const forgotPassword = async (data: ForgotPasswordData) => {
     try {
       await authService.forgotPassword(data)
-      return { success: true, error: null }
+      return { 
+        success: true, 
+        error: null,
+        validationErrors: null
+      }
     } catch (error: unknown) {
       return {
         success: false,
         error: getErrorMessage(error, 'Failed to send password reset link. Please try again.'),
+        validationErrors: error // Pass the full error object for field extraction
       }
     }
   }
@@ -158,11 +169,16 @@ export const useAuth = () => {
   const resetPassword = async (data: ResetPasswordData) => {
     try {
       await authService.resetPassword(data)
-      return { success: true, error: null }
+      return { 
+        success: true, 
+        error: null,
+        validationErrors: null
+      }
     } catch (error: unknown) {
       return {
         success: false,
         error: getErrorMessage(error, 'Password reset failed. Please try again.'),
+        validationErrors: error // Pass the full error object for field extraction
       }
     }
   }

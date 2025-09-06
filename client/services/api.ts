@@ -110,25 +110,22 @@ export class BaseApiService {
 
   /**
    * Handle API errors consistently
+   * Preserve original error structure for proper field-specific error handling
    */
   protected handleError(error: unknown): Error {
-    if (error && typeof error === 'object' && 'data' in error) {
-      const apiError = error.data as ApiErrorResponse
-      if (apiError?.message) {
-        return new Error(apiError.message)
-      }
-      
-      // Handle validation errors
-      if (apiError?.errors) {
-        const firstError = Object.values(apiError.errors)[0]?.[0]
-        if (firstError) {
-          return new Error(firstError)
-        }
-      }
-    }
-
+    // Don't convert to generic Error - preserve the original error structure
+    // This allows useFormErrors to extract field-specific validation errors
     if (error instanceof Error) {
       return error
+    }
+
+    // For FetchError objects, preserve them as-is so field extraction works
+    if (error && typeof error === 'object') {
+      // Create an error that preserves the original error data
+      const preservedError = new Error('API request failed')
+      // Attach the original error data to the error object
+      Object.assign(preservedError, error)
+      return preservedError
     }
 
     return new Error('An unexpected error occurred')

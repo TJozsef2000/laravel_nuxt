@@ -165,7 +165,6 @@ export const useAdminSidebar = () => {
 
   const logout = () => {
     // Handle logout logic - could be extended to call auth service
-    console.log('Logging out...')
     profileDropdownOpen.value = false
     closeMobileSidebar()
   }

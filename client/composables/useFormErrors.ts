@@ -1,90 +1,59 @@
 import type { Ref } from 'vue'
+import { reactive, ref, computed, watch } from 'vue'
 
 /**
- * Laravel validation error structure
+ * Form error handling for Laravel backend validation
+ * Maintains compatibility while reducing complexity
  */
-export interface LaravelValidationResponse {
-  message: string
-  errors: Record<string, string[]>
-}
-
-/**
- * Simple form error handling for Laravel backend validation
- * No client-side validation - purely backend focused
- */
-export function useFormErrors<T extends Record<string, any>>(formData: Ref<T>) {
-  const fieldErrors = reactive<Record<keyof T, string>>({} as Record<keyof T, string>)
+export function useFormErrors<T extends Record<string, unknown>>(formData: Ref<T>) {
+  const fieldErrors = reactive<Record<string, string>>({})
   const generalError = ref<string>('')
 
   /**
-   * Extract field-specific errors from Laravel validation response
-   */
-  const extractFieldErrors = (error: unknown): Record<string, string> => {
-    const extracted: Record<string, string> = {}
-
-    if (error && typeof error === 'object') {
-      const errorObj = error as Record<string, any>
-      
-      // Try different locations for Laravel validation errors
-      let validationErrors: Record<string, string[]> | null = null
-
-      if (errorObj.data?.errors) {
-        validationErrors = errorObj.data.errors
-      } else if (errorObj.response?.data?.errors) {
-        validationErrors = errorObj.response.data.errors
-      } else if (errorObj.errors) {
-        validationErrors = errorObj.errors
-      }
-
-      // Convert validation errors (first error per field)
-      if (validationErrors) {
-        Object.entries(validationErrors).forEach(([field, messages]) => {
-          if (Array.isArray(messages) && messages.length > 0) {
-            extracted[field] = messages[0]
-          }
-        })
-      }
-    }
-
-    return extracted
-  }
-
-  /**
-   * Extract general error message from response
-   */
-  const extractGeneralError = (error: unknown): string => {
-    if (error && typeof error === 'object') {
-      const errorObj = error as Record<string, any>
-      
-      if (errorObj.data?.message) return errorObj.data.message
-      if (errorObj.response?.data?.message) return errorObj.response.data.message
-      if (errorObj.message && !errorObj.message.includes('[POST]')) return errorObj.message
-    }
-    
-    return 'An unexpected error occurred'
-  }
-
-  /**
-   * Handle validation errors from Laravel backend
+   * Extract and handle validation errors from Laravel backend
    */
   const handleValidationErrors = (error: unknown) => {
-    // Clear previous errors
     clearAllErrors()
 
-    // Extract field errors
-    const extracted = extractFieldErrors(error)
-    
-    // Set field errors
-    Object.entries(extracted).forEach(([field, errorMessage]) => {
-      if (field in formData.value) {
-        fieldErrors[field as keyof T] = errorMessage
-      }
-    })
+    if (!error || typeof error !== 'object') {
+      generalError.value = 'An unexpected error occurred'
+      return
+    }
 
-    // Set general error if no field-specific errors or if there are additional errors
-    const generalErrorMessage = extractGeneralError(error)
-    if (Object.keys(extracted).length === 0 || generalErrorMessage !== 'An unexpected error occurred') {
-      generalError.value = generalErrorMessage
+    const errorObj = error as {
+      data?: { errors?: Record<string, string[]>; message?: string }
+      response?: { data?: { errors?: Record<string, string[]>; message?: string } }
+      errors?: Record<string, string[]>
+      message?: string
+    }
+
+    // Extract validation errors from common response structures
+    const validationErrors =
+      errorObj.data?.errors ??
+      errorObj.response?.data?.errors ??
+      errorObj.errors ??
+      null
+
+    if (validationErrors) {
+      // Set field-specific errors
+      Object.entries(validationErrors).forEach(([field, messages]) => {
+        if (
+          Array.isArray(messages) &&
+          messages.length > 0 &&
+          field in formData.value
+        ) {
+          fieldErrors[field] = messages[0]
+        }
+      })
+    }
+
+    // Set general error if no field errors were found
+    if (Object.keys(fieldErrors).length === 0) {
+      generalError.value =
+        errorObj.data?.message ??
+        errorObj.response?.data?.message ??
+        errorObj.message ??
+        'An unexpected error occurred'
     }
   }
 
@@ -93,7 +62,7 @@ export function useFormErrors<T extends Record<string, any>>(formData: Ref<T>) {
    */
   const clearAllErrors = () => {
     Object.keys(fieldErrors).forEach((key) => {
-      delete fieldErrors[key as keyof T]
+      Reflect.deleteProperty(fieldErrors, key)
     })
     generalError.value = ''
   }
@@ -101,21 +70,21 @@ export function useFormErrors<T extends Record<string, any>>(formData: Ref<T>) {
   /**
    * Clear specific field error
    */
-  const clearFieldError = (field: keyof T) => {
-    delete fieldErrors[field]
+  const clearFieldError = (field: string) => {
+    Reflect.deleteProperty(fieldErrors, field)
   }
 
   /**
    * Get error for specific field
    */
-  const getFieldError = (field: keyof T): string | undefined => {
+  const getFieldError = (field: string): string | undefined => {
     return fieldErrors[field]
   }
 
   /**
    * Check if field has error
    */
-  const hasFieldError = (field: keyof T): boolean => {
+  const hasFieldError = (field: string): boolean => {
     return !!fieldErrors[field]
   }
 
@@ -132,12 +101,12 @@ export function useFormErrors<T extends Record<string, any>>(formData: Ref<T>) {
   const setupFieldWatchers = () => {
     Object.keys(formData.value).forEach((field) => {
       watch(
-        () => formData.value[field as keyof T],
+        () => formData.value[field],
         () => {
-          if (fieldErrors[field as keyof T]) {
-            clearFieldError(field as keyof T)
+          if (fieldErrors[field]) {
+            clearFieldError(field)
           }
-          // Also clear general error when user starts typing
+          // Clear general error when user starts typing
           if (generalError.value) {
             generalError.value = ''
           }
@@ -147,8 +116,8 @@ export function useFormErrors<T extends Record<string, any>>(formData: Ref<T>) {
   }
 
   return {
-    // State (readonly for safety)
-    fieldErrors: readonly(fieldErrors) as Readonly<typeof fieldErrors>,
+    // State
+    fieldErrors,
     generalError,
     hasErrors,
 
@@ -159,9 +128,5 @@ export function useFormErrors<T extends Record<string, any>>(formData: Ref<T>) {
     getFieldError,
     hasFieldError,
     setupFieldWatchers,
-
-    // Utilities for manual handling
-    extractFieldErrors,
-    extractGeneralError,
   }
 }

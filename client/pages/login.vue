@@ -145,10 +145,9 @@ const handleSubmit = async () => {
             // Handle validation errors from backend
             if (result.validationErrors) {
                 handleValidationErrors(result.validationErrors)
-            } else {
-                // Show general error
-                generalError.value = result.error || 'Login failed. Please try again.'
             }
+            // Always show general error when login fails
+            generalError.value = result.error || 'Login failed. Please try again.'
         }
     } catch (err: unknown) {
         // Handle unexpected errors

@@ -14,20 +14,20 @@ export class LoginPage {
 
   constructor(page: Page) {
     this.page = page
-    
+
     // Main elements
     this.heading = page.getByRole('heading', { name: /log in/i })
     this.emailInput = page.getByLabel(/email address/i)
     this.passwordInput = page.getByLabel(/password/i)
     this.rememberCheckbox = page.getByLabel(/remember me/i)
     this.loginButton = page.getByRole('button', { name: /log in/i })
-    
+
     // Navigation links
-    this.signUpLink = page.getByRole('link', { name: /sign up/i })
+    this.signUpLink = page.locator('main').getByRole('link', { name: /sign up/i });
     this.forgotPasswordLink = page.getByRole('link', { name: /forgot your password/i })
-    
+
     // Error handling
-    this.errorAlert = page.locator('[role="alert"]')
+    this.errorAlert = page.locator('div[role="alert"].text-red-700')
   }
 
   async goto() {
@@ -43,11 +43,11 @@ export class LoginPage {
   async login(email: string, password: string, remember: boolean = false) {
     await this.emailInput.fill(email)
     await this.passwordInput.fill(password)
-    
+
     if (remember) {
       await this.rememberCheckbox.check()
     }
-    
+
     await this.loginButton.click()
   }
 
