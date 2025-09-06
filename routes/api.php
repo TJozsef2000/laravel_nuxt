@@ -7,7 +7,7 @@ use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 // Public authentication routes (guest only)
-Route::middleware(['guest', 'throttle:5,1'])->group(function () {
+Route::middleware(['guest', 'throttle:10,1'])->group(function () {
     Route::post('/auth/register', [AuthController::class, 'register'])
         ->name('api.auth.register');
 

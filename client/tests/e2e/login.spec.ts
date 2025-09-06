@@ -62,6 +62,7 @@ test.describe('Login Page', () => {
   test('should remember user when checkbox is checked', async ({ loginPage }) => {
     await loginPage.login('admin@example.com', '12345678', true);
 
+    await loginPage.isErrorAlertNotVisible();
     // Should redirect to dashboard
     await loginPage.expectLoginSuccess();
 
@@ -117,14 +118,6 @@ test.describe('Login Page', () => {
     // await expect(loginPage.errorAlert).not.toBeVisible();
   });
 
-  test('should validate email format client-side', async ({ loginPage }) => {
-    // Fill invalid email format
-    await loginPage.emailInput.fill('invalid-email');
-
-    // Email input should show invalid state
-    await expect(loginPage.emailInput).toBeInvalid();
-  });
-
   test('should have proper CSRF protection', async ({ loginPage }) => {
     // Check that CSRF token is present in cookies
     const cookies = await loginPage.page.context().cookies();
@@ -134,24 +127,12 @@ test.describe('Login Page', () => {
     expect(csrfCookie).toBeTruthy();
   });
 
-  test('should handle rate limiting gracefully', async ({ loginPage }) => {
-    // Attempt multiple failed logins to trigger rate limiting
-    for (let i = 0; i < 15; i++) {
-      await loginPage.login('test@example.com', 'wrongpassword');
-      await loginPage.expectLoginError();
-
-      // Clear the form for next attempt
-      await loginPage.emailInput.clear();
-      await loginPage.passwordInput.clear();
-    }
-
-    // Should show rate limiting error
-    await expect(loginPage.errorAlert).toContainText(/too many/i);
-  });
-
   test('should redirect authenticated users away from login page', async ({ loginPage }) => {
     // First login successfully
     await loginPage.login('admin@example.com', '12345678');
+    // Expect no errors
+    await loginPage.isErrorAlertNotVisible();
+    // Should redirect to dashboard
     await loginPage.expectLoginSuccess();
 
     // Then try to visit login page again

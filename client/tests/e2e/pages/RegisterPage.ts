@@ -25,7 +25,7 @@ export class RegisterPage {
     this.passwordInput = page.getByLabel('Password *', { exact: true })
     this.confirmPasswordInput = page.getByLabel(/confirm password/i)
     this.termsCheckbox = page.getByLabel(/i agree to the terms and conditions/i)
-    this.registerButton = page.getByRole('button', { name: /create account/i })
+    this.registerButton = page.locator('button[type="submit"]')
 
     // Navigation links
     this.signInLink = page.getByRole('link', { name: /sign in here/i })
@@ -33,7 +33,7 @@ export class RegisterPage {
     this.privacyLink = page.getByRole('link', { name: /privacy policy/i })
 
     // Error handling
-    this.errorAlert = page.locator('[role="alert"] p.text-sm.font-medium')
+    this.errorAlert = page.locator('div[role="alert"].text-red-700')
   }
 
   async goto() {

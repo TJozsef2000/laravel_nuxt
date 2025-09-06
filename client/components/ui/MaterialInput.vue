@@ -7,6 +7,7 @@
       :value="modelValue"
       :class="inputClasses"
       :placeholder="isFocused ? placeholder : ''"
+      :disabled="disabled"
       @input="$emit('update:modelValue', $event.target.value)"
       @focus="handleFocus"
       @blur="handleBlur"
@@ -68,45 +69,32 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
   import { ref, computed } from 'vue'
 
-  const props = defineProps({
-    id: {
-      type: String,
-      required: true,
-    },
-    label: {
-      type: String,
-      required: true,
-    },
-    type: {
-      type: String,
-      default: 'text',
-    },
-    modelValue: {
-      type: String,
-      default: '',
-    },
-    required: {
-      type: Boolean,
-      default: false,
-    },
-    placeholder: {
-      type: String,
-      default: '',
-    },
-    error: {
-      type: [String, Boolean],
-      default: '',
-    },
-    disabled: {
-      type: Boolean,
-      default: false,
-    },
+  interface Props {
+    id: string
+    label: string
+    type?: string
+    modelValue?: string
+    required?: boolean
+    placeholder?: string
+    error?: string | boolean
+    disabled?: boolean
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    type: 'text',
+    modelValue: '',
+    required: false,
+    placeholder: '',
+    error: '',
+    disabled: false,
   })
 
-  const emit = defineEmits(['update:modelValue'])
+  const emit = defineEmits<{
+    'update:modelValue': [value: string]
+  }>()
 
   const isFocused = ref(false)
   const showPassword = ref(false)

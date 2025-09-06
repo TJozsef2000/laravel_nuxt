@@ -20,7 +20,7 @@ export class LoginPage {
     this.emailInput = page.getByLabel(/email address/i)
     this.passwordInput = page.getByLabel(/password/i)
     this.rememberCheckbox = page.getByLabel(/remember me/i)
-    this.loginButton = page.getByRole('button', { name: /log in/i })
+    this.loginButton = page.locator('button[type="submit"]')
 
     // Navigation links
     this.signUpLink = page.locator('main').getByRole('link', { name: /sign up/i });
@@ -54,6 +54,10 @@ export class LoginPage {
   async expectLoginSuccess() {
     // Should redirect to dashboard after successful login
     await expect(this.page).toHaveURL(/.*dashboard/)
+  }
+
+  async isErrorAlertNotVisible() {
+    await expect(this.errorAlert).not.toBeVisible()
   }
 
   async expectLoginError(errorMessage?: string) {
