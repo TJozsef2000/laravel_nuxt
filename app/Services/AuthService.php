@@ -8,6 +8,7 @@ use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Repositories\UserRepository;
 use Exception;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Events\Verified;
@@ -30,7 +31,7 @@ readonly class AuthService
     /**
      * Register a new user
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      * @throws ValidationException
      * @throws Exception|Throwable
@@ -74,7 +75,7 @@ readonly class AuthService
                 throw $e;
             }
 
-            throw new Exception('Registration failed: ' . $e->getMessage(), 0, $e);
+            throw new Exception('Registration failed: '.$e->getMessage(), 0, $e);
         }
     }
 
@@ -92,9 +93,7 @@ readonly class AuthService
             $loginCredentials = ['email' => $credentials['email'], 'password' => $credentials['password']];
 
             if (! Auth::attempt($loginCredentials, $remember)) {
-                throw ValidationException::withMessages([
-                    'email' => ['The provided credentials are incorrect.'],
-                ]);
+                throw new AuthenticationException('The provided credentials are incorrect.');
             }
 
             if ($request->hasSession()) {
@@ -117,11 +116,16 @@ readonly class AuthService
                 'email' => $credentials['email'] ?? null,
             ]);
             throw $e;
+        } catch (AuthenticationException $e) {
+            $this->logAuthEvent('Login attempt failed', null, $request, $e->getMessage(), [
+                'email' => $credentials['email'] ?? null,
+            ]);
+            throw $e;
         } catch (Throwable $e) {
             $this->logAuthEvent('Login attempt failed', null, $request, $e->getMessage(), [
                 'email' => $credentials['email'] ?? null,
             ]);
-            throw new Exception('Login failed: ' . $e->getMessage(), 0, $e);
+            throw new Exception('Login failed: '.$e->getMessage(), 0, $e);
         }
     }
 
@@ -163,6 +167,7 @@ readonly class AuthService
      * Send password reset link
      *
      * @return array<string, mixed>
+     *
      * @throws ValidationException
      * @throws Exception
      */
@@ -197,15 +202,16 @@ readonly class AuthService
                 'email' => $email,
             ]);
 
-            throw new Exception('Failed to send password reset link: ' . $e->getMessage(), 0, $e);
+            throw new Exception('Failed to send password reset link: '.$e->getMessage(), 0, $e);
         }
     }
 
     /**
      * Reset password
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      * @return array<string, mixed>
+     *
      * @throws ValidationException
      * @throws Exception|Throwable
      */
@@ -259,7 +265,7 @@ readonly class AuthService
                 'email' => $data['email'] ?? null,
             ]);
 
-            throw new Exception('Password reset failed: ' . $e->getMessage(), 0, $e);
+            throw new Exception('Password reset failed: '.$e->getMessage(), 0, $e);
         }
     }
 
@@ -267,6 +273,7 @@ readonly class AuthService
      * Verify email address
      *
      * @return array<string, mixed>
+     *
      * @throws Exception
      */
     public function verifyEmail(User $user, Request $request): array
@@ -294,7 +301,7 @@ readonly class AuthService
             ];
         } catch (Throwable $e) {
             $this->logAuthEvent('Email verification failed', $user, $request, $e->getMessage());
-            throw new Exception('Email verification failed: ' . $e->getMessage(), 0, $e);
+            throw new Exception('Email verification failed: '.$e->getMessage(), 0, $e);
         }
     }
 
@@ -302,6 +309,7 @@ readonly class AuthService
      * Send email verification notification
      *
      * @return array<string, mixed>
+     *
      * @throws Exception
      */
     public function sendEmailVerification(User $user, Request $request): array
@@ -328,15 +336,16 @@ readonly class AuthService
         } catch (Throwable $e) {
             $this->logAuthEvent('Failed to send email verification notification', $user, $request, $e->getMessage());
 
-            throw new Exception('Failed to send email verification: ' . $e->getMessage(), 0, $e);
+            throw new Exception('Failed to send email verification: '.$e->getMessage(), 0, $e);
         }
     }
 
     /**
      * Update user profile
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      * @return array<string, mixed>
+     *
      * @throws Exception|Throwable
      */
     public function updateProfile(User $user, array $data, Request $request): array
@@ -381,10 +390,9 @@ readonly class AuthService
 
             $this->logAuthEvent('Profile update error', $user, $request, $e->getMessage());
 
-            throw new Exception('Profile update failed: ' . $e->getMessage(), 0, $e);
+            throw new Exception('Profile update failed: '.$e->getMessage(), 0, $e);
         }
     }
-
 
     /**
      * Get current authenticated user
@@ -399,11 +407,10 @@ readonly class AuthService
         return $user ? UserResource::make($user)->toArray(request()) : null;
     }
 
-
     /**
      * Log authentication events
      *
-     * @param array<string, mixed> $extra
+     * @param  array<string, mixed>  $extra
      */
     private function logAuthEvent(
         string $message,

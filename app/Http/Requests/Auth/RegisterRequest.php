@@ -67,12 +67,10 @@ class RegisterRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $email = mb_strtolower(mb_trim($this->email ?? ''));
-        $name = mb_trim($this->name ?? '');
-
         $this->merge([
-            $email,
-            $name,
+            'email' => mb_strtolower(mb_trim($this->email ?? '')),
+            'name' => mb_trim($this->name ?? ''),
+            'terms' => $this->boolean('terms'),
         ]);
     }
 }

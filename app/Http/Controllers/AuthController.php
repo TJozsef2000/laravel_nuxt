@@ -15,11 +15,11 @@ use App\Models\User;
 use App\Services\AuthService;
 use Dedoc\Scramble\Attributes\BodyParameter;
 use Exception;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
@@ -40,13 +40,26 @@ class AuthController extends BaseRestController
      */
     public function register(RegisterRequest $request): JsonResponse
     {
-        $result = $this->authService->register($request->validated(), $request);
+        try {
+            $result = $this->authService->register($request->validated(), $request);
 
-        return $this->successResponse(
-            data: ['user' => $result['user']],
-            message: $result['message'],
-            status: Response::HTTP_CREATED
-        );
+            return $this->successResponse(
+                data: ['user' => $result['user']],
+                message: $result['message'],
+                status: Response::HTTP_CREATED
+            );
+        } catch (ValidationException $e) {
+            // Re-throw validation exceptions to be handled by Laravel's validation error handler
+            // This will return proper 422 responses with field-specific errors
+            throw $e;
+        } catch (Exception $e) {
+            // Handle unexpected errors (database issues, etc.)
+            return $this->errorResponse(
+                'Registration failed due to a system error. Please try again.',
+                Response::HTTP_INTERNAL_SERVER_ERROR,
+                $e
+            );
+        }
     }
 
     /**
@@ -59,12 +72,27 @@ class AuthController extends BaseRestController
     #[BodyParameter('remember', description: 'Remember user', type: 'boolean', default: 'true', example: 'true')]
     public function login(LoginRequest $request): JsonResponse
     {
-        $result = $this->authService->login($request->validated(), $request);
+        try {
+            $result = $this->authService->login($request->validated(), $request);
 
-        return $this->successResponse(
-            data: ['user' => $result['user']],
-            message: $result['message'],
-        );
+            return $this->successResponse(
+                data: ['user' => $result['user']],
+                message: $result['message'],
+            );
+        } catch (ValidationException $e) {
+            // Re-throw validation exceptions to be handled by Laravel's validation error handler
+            // This will return proper 422 responses with field-specific errors
+            throw $e;
+        } catch (AuthenticationException $e) {
+            return $this->errorResponse('The provided credentials are incorrect.', Response::HTTP_UNAUTHORIZED);
+        } catch (Exception $e) {
+            // Handle unexpected errors (session issues, database problems, etc.)
+            return $this->errorResponse(
+                'Login failed due to a system error. Please try again.',
+                Response::HTTP_INTERNAL_SERVER_ERROR,
+                $e
+            );
+        }
     }
 
     /**
@@ -98,6 +126,7 @@ class AuthController extends BaseRestController
 
     /**
      * Reset password
+     *
      * @throws Throwable
      */
     public function resetPassword(ResetPasswordRequest $request): JsonResponse
