@@ -30,6 +30,7 @@
                         v-model="form.email"
                         :required="true"
                         :disabled="isLoading"
+                        :error="getFieldError('email')"
                     />
 
                     <MaterialInput
@@ -39,6 +40,7 @@
                         v-model="form.password"
                         :required="true"
                         :disabled="isLoading"
+                        :error="getFieldError('password')"
                     />
 
                     <div class="flex items-center justify-between">
@@ -58,9 +60,9 @@
                     </div>
 
                     <ErrorAlert
-                        :error="error"
+                        :error="generalError"
                         :dismissible="true"
-                        @dismiss="error = ''"
+                        @dismiss="generalError = ''"
                     />
 
                     <button
@@ -96,6 +98,7 @@ import MaterialInput from '~/components/ui/MaterialInput.vue'
 import MaterialButton from '~/components/ui/MaterialButton.vue'
 import Checkbox from '~/components/ui/Checkbox.vue'
 import ErrorAlert from '~/components/ui/ErrorAlert.vue'
+import { useFormErrors } from '~/composables/useFormErrors'
 
 definePageMeta({
     middleware: 'guest',
@@ -114,11 +117,23 @@ const form = reactive<LoginCredentials>({
     remember: false,
 })
 
-const error = ref<string>('')
+// Use the form errors composable for backend validation
+const {
+    fieldErrors,
+    generalError,
+    hasErrors,
+    getFieldError,
+    handleValidationErrors,
+    clearAllErrors,
+    setupFieldWatchers
+} = useFormErrors(toRef(() => form))
+
+// Setup watchers to clear errors when user types
+setupFieldWatchers()
 
 const handleSubmit = async () => {
     isLoading.value = true
-    error.value = ''
+    clearAllErrors() // Clear previous errors
 
     try {
         const result = await signIn(form)
@@ -127,10 +142,17 @@ const handleSubmit = async () => {
             showSuccess('Successfully signed in!')
             // Redirect is handled by useAuth.signIn() - no need to redirect here
         } else {
-            error.value = result.error || 'Login failed. Please try again.'
+            // Handle validation errors from backend
+            if (result.validationErrors) {
+                handleValidationErrors(result.validationErrors)
+            } else {
+                // Show general error
+                generalError.value = result.error || 'Login failed. Please try again.'
+            }
         }
-    } catch {
-        error.value = 'An unexpected error occurred. Please try again.'
+    } catch (err: unknown) {
+        // Handle unexpected errors
+        handleValidationErrors(err)
         showError('Login failed. Please check your credentials.')
     } finally {
         isLoading.value = false

@@ -74,11 +74,16 @@ export const useAuth = () => {
   const signIn = async (credentials: LoginCredentials) => {
     try {
       await login(credentials)
-      return { success: true, error: null }
+      return { 
+        success: true, 
+        error: null,
+        validationErrors: null
+      }
     } catch (error: unknown) {
       return {
         success: false,
         error: getErrorMessage(error, 'Login failed. Please check your credentials.'),
+        validationErrors: error // Pass the full error object for field extraction
       }
     }
   }

@@ -6,7 +6,6 @@
       :type="inputType"
       :value="modelValue"
       :class="inputClasses"
-      class="peer w-full rounded-md border border-gray-300 bg-white px-3 pb-3 pt-4 text-gray-900 outline-none transition-colors duration-200 focus:border-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
       :placeholder="isFocused ? placeholder : ''"
       @input="$emit('update:modelValue', $event.target.value)"
       @focus="handleFocus"
@@ -15,10 +14,16 @@
     <label
       :for="id"
       :class="labelClasses"
-      class="pointer-events-none absolute left-3 top-[16px] origin-left px-1 text-gray-500 transition-all duration-200 dark:text-gray-400"
     >
       {{ label }}{{ required ? ' *' : '' }}
     </label>
+    <!-- Error message -->
+    <p
+      v-if="hasError && errorMessage"
+      class="mt-1 text-sm text-red-600 dark:text-red-400"
+    >
+      {{ errorMessage }}
+    </p>
     <button
       v-if="type === 'password'"
       type="button"
@@ -91,6 +96,14 @@
       type: String,
       default: '',
     },
+    error: {
+      type: [String, Boolean],
+      default: '',
+    },
+    disabled: {
+      type: Boolean,
+      default: false,
+    },
   })
 
   const emit = defineEmits(['update:modelValue'])
@@ -106,17 +119,54 @@
   })
 
   const hasValue = computed(() => props.modelValue.length > 0)
+  const hasError = computed(() => {
+    if (typeof props.error === 'boolean') {
+      return props.error
+    }
+    return typeof props.error === 'string' && props.error.length > 0
+  })
 
-  const inputClasses = computed(() => ({
-    'border-primary-500': isFocused.value,
-    'border-gray-300 dark:border-gray-600': !isFocused.value,
-  }))
+  const errorMessage = computed(() => {
+    if (typeof props.error === 'string') {
+      return props.error
+    }
+    return ''
+  })
 
-  const labelClasses = computed(() => ({
-    'text-xs -translate-y-6 scale-90 text-primary-500 bg-white dark:bg-gray-800': isFocused.value || hasValue.value,
-    'text-sm translate-y-0 scale-100 text-gray-500 bg-transparent dark:text-gray-400':
-      !isFocused.value && !hasValue.value,
-  }))
+  const inputClasses = computed(() => {
+    const baseClasses = 'peer w-full rounded-md border bg-white px-3 pb-3 pt-4 text-gray-900 outline-none transition-colors duration-200 dark:bg-gray-800 dark:text-gray-100'
+    
+    if (props.disabled) {
+      return `${baseClasses} cursor-not-allowed opacity-50 bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600`
+    }
+    
+    if (hasError.value) {
+      return `${baseClasses} border-red-500 focus:border-red-500 focus:ring-red-500 dark:border-red-500`
+    }
+    
+    if (isFocused.value) {
+      return `${baseClasses} border-primary-500 focus:border-primary-500 focus:ring-primary-500`
+    }
+    
+    return `${baseClasses} border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500`
+  })
+
+  const labelClasses = computed(() => {
+    const baseClasses = 'pointer-events-none absolute left-3 top-[16px] origin-left px-1 transition-all duration-200'
+    
+    if (isFocused.value || hasValue.value) {
+      if (hasError.value) {
+        return `${baseClasses} text-xs -translate-y-6 scale-90 text-red-500 bg-white dark:bg-gray-800 dark:text-red-400`
+      }
+      return `${baseClasses} text-xs -translate-y-6 scale-90 text-primary-500 bg-white dark:bg-gray-800`
+    }
+    
+    if (hasError.value) {
+      return `${baseClasses} text-sm translate-y-0 scale-100 text-red-500 bg-transparent dark:text-red-400`
+    }
+    
+    return `${baseClasses} text-sm translate-y-0 scale-100 text-gray-500 bg-transparent dark:text-gray-400`
+  })
 
   const handleFocus = () => {
     isFocused.value = true
