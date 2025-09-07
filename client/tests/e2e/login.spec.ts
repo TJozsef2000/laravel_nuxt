@@ -130,8 +130,9 @@ test.describe('Login Page', () => {
   test('should redirect authenticated users away from login page', async ({ loginPage }) => {
     // First login successfully
     await loginPage.login('admin@example.com', '12345678');
-    // Expect no errors
+
     await loginPage.isErrorAlertNotVisible();
+    await expect(loginPage.errorAlert).not.toBeVisible();
     // Should redirect to dashboard
     await loginPage.expectLoginSuccess();
 
