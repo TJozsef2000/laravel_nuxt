@@ -1,4 +1,4 @@
-FROM php:8.2-fpm
+FROM php:8.3-fpm
 
 RUN apt-get update && apt-get install -y \
     libpng-dev \
@@ -37,6 +37,7 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install zip \
     && docker-php-ext-install bcmath \
     && docker-php-ext-install opcache \
+    && docker-php-ext-install sockets \
     && pecl install redis \
     && docker-php-ext-enable redis
 
