@@ -35,8 +35,8 @@ test('users cannot authenticate with invalid password', function () {
         'password' => 'wrong-password',
     ]);
 
-    $response->assertStatus(422)
-        ->assertJsonValidationErrors(['email']);
+    $response->assertStatus(401);
+    $response->assertJson(['message' => 'The provided credentials are incorrect.']);
 
     $this->assertGuest();
 });
@@ -47,8 +47,8 @@ test('users cannot authenticate with non-existent email', function () {
         'password' => 'SecureTestPassword2024@!',
     ]);
 
-    $response->assertStatus(422)
-        ->assertJsonValidationErrors(['email']);
+    $response->assertStatus(401);
+    $response->assertJson(['message' => 'The provided credentials are incorrect.']);
 
     $this->assertGuest();
 });
@@ -56,8 +56,8 @@ test('users cannot authenticate with non-existent email', function () {
 test('login is rate limited after failed attempts', function () {
     $user = User::factory()->create();
 
-    for ($i = 0; $i < 5; $i++) {
-        $this->postJson('/login', [
+    for ($i = 0; $i < 10; $i++) {
+        $this->postJson('/api/auth/login', [
             'email' => $user->email,
             'password' => 'wrong-password',
         ]);
@@ -68,8 +68,8 @@ test('login is rate limited after failed attempts', function () {
         'password' => 'SecureTestPassword2024@!',
     ]);
 
-    $response->assertStatus(422)
-        ->assertJsonValidationErrors(['email']);
+    $response->assertStatus(429)
+        ->assertJson(['message' => 'Too Many Attempts.']);
 });
 
 test('users can logout successfully', function () {

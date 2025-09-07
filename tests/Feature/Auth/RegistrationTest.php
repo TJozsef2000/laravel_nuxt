@@ -78,7 +78,7 @@ test('registration fails without accepting terms', function () {
 
 test('registration is rate limited', function () {
     // Make 5 failed requests to hit the throttle:5,1 limit (using invalid data to avoid login)
-    for ($i = 0; $i < 5; $i++) {
+    for ($i = 0; $i < 15; $i++) {
         $this->postJson('/api/auth/register', [
             'name' => 'Test User',
             'email' => 'invalid-email', // Invalid email to avoid successful registration

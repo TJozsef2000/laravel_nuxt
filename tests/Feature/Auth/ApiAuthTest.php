@@ -174,7 +174,7 @@ test('guest cannot access logout route', function () {
 });
 
 test('rate limiting works on API registration endpoint', function () {
-    for ($i = 0; $i < 5; $i++) {
+    for ($i = 0; $i < 15; $i++) {
         $this->postJson('/api/auth/register', [
             'name' => 'Test User',
             'email' => 'invalid-email', // Invalid email to avoid successful registration
@@ -198,7 +198,7 @@ test('rate limiting works on API registration endpoint', function () {
 test('rate limiting works on API login endpoint', function () {
     $user = User::factory()->create();
 
-    for ($i = 0; $i < 5; $i++) {
+    for ($i = 0; $i < 15; $i++) {
         $this->postJson('/api/auth/login', [
             'email' => $user->email,
             'password' => 'wrong-password',

@@ -72,7 +72,7 @@ test.describe('Register Page', () => {
 
   test('should show error for existing email', async ({ registerPage }) => {
     // Try to register with an email that already exists
-    await registerPage.register('John Doe', 'admin@test.com', 'password123');
+    await registerPage.register('John Doe', 'test@test.com', 'password123');
 
     // Should show email already exists error
     await registerPage.expectRegistrationError();
@@ -84,6 +84,10 @@ test.describe('Register Page', () => {
     const uniqueEmail = `test${Date.now()}@test.com`;
 
     await registerPage.register('John Doe', uniqueEmail, 'password123');
+
+
+    // assert that there is no errorAlert
+    await expect(registerPage.errorAlert).not.toBeVisible();
 
     // Should redirect to dashboard after successful registration
     await registerPage.expectRegistrationSuccess();
